@@ -2,3 +2,4 @@
 .mypy_cache/
 *.ipynb
 universal-sentence-encoder_4/
+model/__pycache__/*

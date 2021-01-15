@@ -1,9 +1,6 @@
 import requests as rq
 from bs4 import BeautifulSoup
-import io
-import time
-import json
-import argparse
+import time, json, argparse
 
 def crawl_news(link):
     response = rq.get(link)

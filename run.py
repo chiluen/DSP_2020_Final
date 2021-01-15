@@ -1,16 +1,17 @@
-import warnings
-warnings.filterwarnings("ignore") #ignore depreciation
-import torch
-from summarizer import Summarizer
-import json
-import time
-import argparse
+import os, sys, json, argparse
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  #把tensorflow的warning取消掉
+import warnings; warnings.filterwarnings("ignore") #ignore depreciation
+
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-e', type=int, default=1, help='Use extrative model number')
-parser.add_argument('-a', type=int, default=1, help='Use abstrative model number')
+parser.add_argument('-e', type=int, default=-1, help='Use extrative model number')
+parser.add_argument('-a', type=int, default=-1, help='Use abstrative model number')
 args = parser.parse_args()
+if args.e == -1 and args.a == -1:
+    print("Please select one model by -e or -a")
+    sys.exit()
 
+#----------Data----------#
 with open('./crawl_data/title.json', 'r') as f:
     title_data = json.load(f)
 with open('./crawl_data/text.json', 'r') as f:
@@ -26,8 +27,8 @@ Which topic you want to read:
 4: world
 5: entertainment
 """
-
-# 選topic
+#----------Text selection----------#
+#topic
 key = False
 while(not key):
     class_index = float(input(select_topic_question)) - 1
@@ -39,7 +40,7 @@ while(not key):
         class_index = int(class_index)
 topic = article_classes[class_index]
 
-# 選title
+#title
 select_title_question = "\nWhich title you want to read:\n"
 for i in range(len(title_data[topic])):
     select_title_question += "{}:   ".format(i+1) + title_data[topic][i] + "\n"
@@ -56,22 +57,20 @@ while(not key):
 
 text = text_data[topic][title_index]
 
-print("---------------Start summarize---------------")        
-from model.extractive import bert_knn
-model = bert_knn('distilbert-base-uncased')
+#----------Summarization process----------@
+print("---------------Start summarize---------------\n")
+print("Loading for model.....")
+if args.e == 1:
+    from model.extractive import bert_knn
+    model = bert_knn('distilbert-base-uncased')
+elif args.e == 2:
+    from model.extractive import textrank
+    model = textrank()
+elif args.a == 1:
+    pass
+elif args.a == 2:
+    pass
+
 model.summarize(text)
 
 
-"""
-#Summarize
-model = Summarizer('distilbert-base-uncased') #location at /.cache/torch
-text = text_data[topic][title_index]
-num_sentences = int(input("How many sentences you want(1~30)\n"))
-
-start_time = time.time()
-resp = model(text, num_sentences=num_sentences)
-end_time = time.time()
-
-print(resp)
-print("\nTotal time used :{}".format(end_time - start_time))
-"""
