@@ -3,3 +3,5 @@
 *.ipynb
 universal-sentence-encoder_4/
 model/__pycache__/*
+cnn_dailymail
+!ROUGE_test.ipynb
