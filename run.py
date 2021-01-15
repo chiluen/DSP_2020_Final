@@ -4,6 +4,12 @@ import torch
 from summarizer import Summarizer
 import json
 import time
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-e', type=int, default=1, help='Use extrative model number')
+parser.add_argument('-a', type=int, default=1, help='Use abstrative model number')
+args = parser.parse_args()
 
 with open('./crawl_data/title.json', 'r') as f:
     title_data = json.load(f)
@@ -48,8 +54,15 @@ while(not key):
         key = True
         title_index = int(title_index)
 
-print("---------------Start summarize---------------")        
+text = text_data[topic][title_index]
 
+print("---------------Start summarize---------------")        
+from model.extractive import bert_knn
+model = bert_knn('distilbert-base-uncased')
+model.summarize(text)
+
+
+"""
 #Summarize
 model = Summarizer('distilbert-base-uncased') #location at /.cache/torch
 text = text_data[topic][title_index]
@@ -61,3 +74,4 @@ end_time = time.time()
 
 print(resp)
 print("\nTotal time used :{}".format(end_time - start_time))
+"""
