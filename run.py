@@ -67,8 +67,12 @@ elif args.e == 2:
     from model.extractive import textrank
     model = textrank()
 elif args.a == 1:
+    from model.opinosis import opinion_summaizer_3
+    model = opinion_summaizer_3.opinosis()
     pass
 elif args.a == 2:
+    from model.fast_abs_rl import demo
+    model = demo.fast_abs()
     pass
 
 model.summarize(text)
