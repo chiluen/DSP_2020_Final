@@ -1,8 +1,8 @@
 import os, sys, json, argparse
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  #把tensorflow的warning取消掉
 import warnings; warnings.filterwarnings("ignore") #ignore depreciation
-
-
+from gtts import gTTS
+from tempfile import TemporaryFile
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', type=int, default=-1, help='Use extrative model number')
 parser.add_argument('-a', type=int, default=-1, help='Use abstrative model number')
@@ -60,6 +60,7 @@ text = text_data[topic][title_index]
 #----------Summarization process----------@
 print("---------------Start summarize---------------\n")
 print("Loading for model.....")
+print()
 if args.e == 1:
     from model.extractive import bert_knn
     model = bert_knn('distilbert-base-uncased')
@@ -75,6 +76,15 @@ elif args.a == 2:
     model = demo.fast_abs()
     pass
 
-model.summarize(text)
-
-
+summary = model.summarize(text)
+print()
+Y_or_N = input("Do you want to listen the summary? (y/n)\n")
+if(Y_or_N == "y" or Y_or_N == "Y" or Y_or_N == "yes" or Y_or_N == "Yes"):
+    tts = gTTS(text=summary, lang='en')
+    tts.save("synthesized.mp3")
+    from pygame import mixer
+    mixer.init()
+    mixer.music.load("synthesized.mp3")
+    mixer.music.play()
+else:
+    pass
