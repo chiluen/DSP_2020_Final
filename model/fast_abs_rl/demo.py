@@ -28,7 +28,7 @@ class fast_abs():
         script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
         rel_path = "pretrained/acl"
         self.model_dir=os.path.join(script_dir, rel_path)
-        self.beam_size=1
+        self.beam_size=5
         self.diverse=1.0
         self.max_len=30
         self.cuda = torch.cuda.is_available()
@@ -38,9 +38,19 @@ class fast_abs():
         for sentence in sentences:
             words = nltk.word_tokenize(sentence)
             sent_list.append(words)
-        self.decode(self.model_dir, self.beam_size, self.diverse, self.max_len, self.cuda, sent_list)
+        summary = self.decode(self.model_dir, self.beam_size, self.diverse, self.max_len, self.cuda, sent_list)
+        print(summary)
+    def inference(self, text):
+        sentences = nltk.sent_tokenize(text)
+        sent_list = []
+        for sentence in sentences:
+            words = nltk.word_tokenize(sentence)
+            sent_list.append(words)
+        summary = self.decode(self.model_dir, self.beam_size, self.diverse, self.max_len, self.cuda, sent_list)
+        return summary
     def decode(self, model_dir, beam_size, diverse, max_len, cuda, sent_list):
         start = time()
+        summary = ""
         # setup model
         with open(join(model_dir, 'meta.json')) as f:
             meta = json.loads(f.read())
@@ -74,44 +84,50 @@ class fast_abs():
             ext_arts += [raw_art_sents[i] for i in ext]
             if beam_size > 1:
                 all_beams = abstractor(ext_arts, beam_size, diverse)
-                dec_outs = rerank_mp(all_beams, ext_inds)
+                dec_outs = self.rerank_mp(all_beams, ext_inds)
             else:
                 dec_outs = abstractor(ext_arts)
             for j, n in ext_inds:
                 decoded_sents = [' '.join(dec) for dec in dec_outs[j:j+n]]
                 for sent in decoded_sents:
-                    print(sent)
-
+                    #print(sent)
+                    summary = summary + sent + "\n"
+        return summary
     _PRUNE = defaultdict(
         lambda: 2,
         {1:5, 2:5, 3:5, 4:5, 5:5, 6:4, 7:3, 8:3}
     )
 
-    def rerank(all_beams, ext_inds):
+    def rerank(self, all_beams, ext_inds):
         beam_lists = (all_beams[i: i+n] for i, n in ext_inds if n > 0)
-        return list(concat(map(rerank_one, beam_lists)))
+        return list(concat(map(self.rerank_one, beam_lists)))
 
-    def rerank_mp(all_beams, ext_inds):
+    def rerank_mp(self, all_beams, ext_inds):
         beam_lists = [all_beams[i: i+n] for i, n in ext_inds if n > 0]
         with mp.Pool(8) as pool:
-            reranked = pool.map(rerank_one, beam_lists)
+            reranked = pool.map(self.rerank_one, beam_lists)
         return list(concat(reranked))
 
-    def rerank_one(beams):
+    def rerank_one(self, beams):
+        _PRUNE = defaultdict(
+            lambda: 2,
+            {1:5, 2:5, 3:5, 4:5, 5:5, 6:4, 7:3, 8:3}
+        )
         @curry
+        
         def process_beam(beam, n):
             for b in beam[:n]:
-                b.gram_cnt = Counter(_make_n_gram(b.sequence))
+                b.gram_cnt = Counter(self._make_n_gram(b.sequence))
             return beam[:n]
         beams = map(process_beam(n=_PRUNE[len(beams)]), beams)
-        best_hyps = max(product(*beams), key=_compute_score)
+        best_hyps = max(product(*beams), key=self._compute_score)
         dec_outs = [h.sequence for h in best_hyps]
         return dec_outs
 
-    def _make_n_gram(sequence, n=2):
+    def _make_n_gram(self, sequence, n=2):
         return (tuple(sequence[i:i+n]) for i in range(len(sequence)-(n-1)))
 
-    def _compute_score(hyps):
+    def _compute_score(self, hyps):
         all_cnt = reduce(op.iadd, (h.gram_cnt for h in hyps), Counter())
         repeat = sum(c-1 for g, c in all_cnt.items() if c > 1)
         lp = sum(h.logprob for h in hyps) / sum(len(h.sequence) for h in hyps)

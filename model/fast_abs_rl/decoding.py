@@ -21,7 +21,8 @@ from .data.data import CnnDmDataset
 try:
     DATASET_DIR = os.environ['DATA']
 except KeyError:
-    print('please use environment variable to specify data directories')
+    pass
+    #print('please use environment variable to specify data directories')
 
 class DecodeDataset(CnnDmDataset):
     """ get the article sentences only (for decoding use)"""
