@@ -49,7 +49,7 @@ class textrank():
         summary = " ".join([i[1] for i in ranked_sentences[:num_sentences]])
         
         print(summary)
-
+        return summary
     def inference(self, text, num_sentences):
         sentences = sent_tokenize(text)
         word_embedding = np.array(self.embed(sentences))
@@ -96,7 +96,7 @@ class textrank_bert():
             
         summary = " ".join([i[1] for i in ranked_sentences[:num_sentences]])
         print(summary)
-
+        return summary
     def inference(self, text, num_sentences):
         sentences = sent_tokenize(text)
         tokens = self.tokenizer(sentences, padding=True, return_tensors="pt") #做padding
