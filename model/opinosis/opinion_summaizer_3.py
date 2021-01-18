@@ -15,6 +15,7 @@ import nltk
 
 class opinosis():
     def __init__(self):
+        #print("here!!!")
         pass
     def POSTagger(self, text):
         words=nltk.word_tokenize(text)
@@ -35,7 +36,7 @@ class opinosis():
         review_files = ["tmp_reviews"]
         for e in review_files:
             edges_cnt, nodes_pri = self.create_graph(e)
-
+            start_list = self.get_valid_start_node(e)
             with open('review_edges', 'w') as f:
                 for bigram in edges_cnt:
                     f.write(" ".join([bigram[0], bigram[1]]) + 
@@ -46,7 +47,7 @@ class opinosis():
                                 data=(('count',int),))
             #cp = ConfigParser()
             #cp.read("opinosis.properties")
-            candidates = self.summarize_candidates(G, nodes_pri)
+            candidates = self.summarize_candidates(G, nodes_pri, start_list)
             self.remove_duplicates(candidates)
 
             li = list(candidates.items())
@@ -54,17 +55,63 @@ class opinosis():
             li = sorted(li, key=itemgetter(1), reverse=True)
 
             count = 1
+            summary = ""
             for e in li:
-                if (count == 10):
+                if (count == 3):
                     break
                 words = e[0].split()
                 #words.sdasd
                 for w in words:
                     out = w.rsplit("/", 1)
                 #words = words.rsplit("/", 1)
-                    print(out[0], end=" ")
-                print(".")
+                    #print(out[0], end=" ")
+                    summary = summary + out[0] + " "
+                #print(".")
+                summary = summary + "."
                 count = count + 1
+        print(summary)
+        return summary
+    def inference(self, text, num_sentences):
+        
+        #text = "They have traded the 31-year-old to the Brooklyn Nets as part of a three-team deal, the Nets announced on Thursday. In return for Harden, Houston is acquiring Caris LeVert and Rodions Kurucs from the Nets, Dante Exum from the Cleveland Cavaliers, three first-round picks from the Nets, one first-round pick from the Cavaliers via the Milwaukee Bucks, and four first-round pick swaps from the Nets. In a separate deal, Houston is trading LeVert and a second-round pick to the Indiana Pacers for guard and two-time All-Star Victor Oladipo, according to The Athletic's Shams Charania.   Harden, an eight-time All-Star, was acquired by the Rockets from the Oklahoma City Thunder in 2012.  While in Houston, he was voted the league's best player for the 2017-18 season and led the Rockets to the playoffs in all eight years. Visit CNN.com/sport for more news, videos and features \"Adding an All-NBA player such as James to our roster better positions our team to compete against the league's best,\" said Nets General Manager Sean Marks.  \"James is one of the most prolific scorers and playmakers in our game, and we are thrilled to bring his special talents to Brooklyn.\"  The trade comes in the same week that Harden criticized the Rockets.  \"We're just not good enough -- obviously, chemistry, talent-wise, just everything -- and it was clear these last few games,\" Harden said. \"I love this city. I've literally done everything that I can. I mean, this situation, it's crazy. It's something that I don't think can be fixed.\" READ: LeBron James hits no-look three pointer to win mid-game bet with teammate in LA Lakers rout The postgame comments were the last of a string a of negative behavior from the disgruntled star, after arriving late to the team's training camp, and then being sidelined for four days and fined $50,000 by the NBA for violating the league's health and safety protocols days before the start of the season. The former MVP now reunites with former Thunder teammate Kevin Durant and perennial All-Star guard Kyrie Irving in Brooklyn.  Further postponements Meanwhile, the NBA announced on Wednesday that it was postponing its ninth game of the season. Two games scheduled for Friday between the Phoenix Suns and the Golden State Warriros and the Washington Wizards and Detriot Pistons have been postponed as ongoing contact tracing means the Suns and the Wizards do not have the required eight players to contest the games.  Since January 6, 16 NBA players have tested positive for Covid-19.  The league announced on Tuesday that it had adopted stricter health and safety protocols to combat the spread of the virus. "
+        self.POSTagger(text)
+        review_files = ["tmp_reviews"]
+        for e in review_files:
+            edges_cnt, nodes_pri = self.create_graph(e)
+            start_list = self.get_valid_start_node(e)
+            with open('review_edges', 'w') as f:
+                for bigram in edges_cnt:
+                    f.write(" ".join([bigram[0], bigram[1]]) + 
+                            " " + str(edges_cnt[bigram]))
+                    f.write("\n")
+
+            G = nx.read_edgelist('review_edges', create_using=nx.DiGraph(),
+                                data=(('count',int),), comments="~I do fucking not need comment-")
+            #cp = ConfigParser()
+            #cp.read("opinosis.properties")
+            candidates = self.summarize_candidates(G, nodes_pri, start_list)
+            self.remove_duplicates(candidates)
+
+            li = list(candidates.items())
+            #li.sort(key=itemgetter(1), reverse=True)
+            li = sorted(li, key=itemgetter(1), reverse=True)
+
+            count = 0
+            summary = ""
+            for e in li:
+                if (count == num_sentences):
+                    break
+                words = e[0].split()
+                #words.sdasd
+                for w in words:
+                    out = w.rsplit("/", 1)
+                #words = words.rsplit("/", 1)
+                    #print(out[0], end=" ")
+                    summary = summary + out[0] + " "
+                #print(".")
+                summary = summary + "."
+                count = count + 1
+        return summary
     def create_graph(self, review_file):
         """
         Create a Opinosis graph for the given review_file
@@ -80,6 +127,8 @@ class opinosis():
                 if not line:
                     continue
                 words = line.split()
+                if (len(words)== 1):
+                    words.append('./.')
                 words2 = words[1:][:]
                 words1 = words[:-1]
                 bigram = zip(words1, words2)
@@ -88,8 +137,17 @@ class opinosis():
                     nodes_pri[word].append((i,j))
         edges_cnt = Counter(edges)
         return edges_cnt, nodes_pri
-
-    def valid_start_node(self, node, nodes_pri):
+    def get_valid_start_node(self, review_file):
+        start_list = []
+        with open(review_file, 'r') as f:
+            for i, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                words = line.split()
+                start_list.append(words[0])
+        return(start_list)
+    def valid_start_node(self, node, nodes_pri, start_list):
         """
         Determine if node is a valid start node
         """
@@ -105,7 +163,9 @@ class opinosis():
         if median <= START:
             #print(node)
             w, t = node.rsplit("/", 1)
-            if w in start_word or t in start_tag:
+            #if w in start_word or t in start_tag:
+            #    return True
+            if node in start_list:
                 return True
         return False
 
@@ -131,6 +191,9 @@ class opinosis():
         """
         Determine if node is a valid end node.
         """
+        #print(node)
+        #if node == ('’/NN'):
+        #    assert(1==2)
         if "/." in node:
             return True
         elif len(graph[node]) <= 0:
@@ -144,8 +207,13 @@ class opinosis():
         """
         #return True
         sent = " ".join(sentence)
+        if (len(sentence) < 1):
+            return False
+        else:           ### This two line for the reason of comment below
+            return True ### 
+        """
         last = sentence[-1]
-        w, t = last.split("/")
+        w, t = last.rsplit("/", 1)
         if t in set(["TO", "VBZ", "IN", "CC", "WDT", "PRP", "DT", ","]):
             return False
         if re.match(".*(/JJ)*.*(/NN)+.*(/VB)+.*(/JJ)+.*", sent):
@@ -160,7 +228,7 @@ class opinosis():
             return True
         else:
             return False
-
+        """
     def path_score(self, redundancy, sen_len):
         """
         log weghted redundancy score function
@@ -223,6 +291,8 @@ class opinosis():
         """
         Traverse a path.
         """
+        #if node == ('’/NNP'):
+        #    assert(1==2)
         # Don't allow sentence that are too long to avoid looping forever.
         if len(sentence) > 20:
             return 
@@ -234,7 +304,10 @@ class opinosis():
                 #Removing the punctuation at the end. 
                 del sentence[-1]
                 if self.valid_candidate(sentence):
-                    final_score = score/float(len(sentence))
+                    if(len(sentence) == 0):
+                        final_score = 0
+                    else:
+                        final_score = score/float(len(sentence))
                     clist[" ".join(sentence)] = score
                 return
 
@@ -269,14 +342,14 @@ class opinosis():
                     self.traverse(graph, nodes_pri, neighbor, new_sentence,
                             pri_new, new_score, clist, False)
 
-    def summarize_candidates(self, graph, nodes_pri):
+    def summarize_candidates(self, graph, nodes_pri, start_list):
         """
         Create summaries from the Opinosis graph. 
         """
         nodes_size = len(nodes_pri)
         candidates = defaultdict(int)
         for node in nodes_pri:
-            if self.valid_start_node(node, nodes_pri):
+            if self.valid_start_node(node, nodes_pri, start_list):
                 score = 0
                 clist = defaultdict(int)
                 sentence = [node]
@@ -289,8 +362,11 @@ class opinosis():
         return candidates
 
     #cp = None
+
 if __name__ == '__main__':
-    text = "They have traded the 31-year-old to the Brooklyn Nets as part of a three-team deal, the Nets announced on Thursday. In return for Harden, Houston is acquiring Caris LeVert and Rodions Kurucs from the Nets, Dante Exum from the Cleveland Cavaliers, three first-round picks from the Nets, one first-round pick from the Cavaliers via the Milwaukee Bucks, and four first-round pick swaps from the Nets. In a separate deal, Houston is trading LeVert and a second-round pick to the Indiana Pacers for guard and two-time All-Star Victor Oladipo, according to The Athletic's Shams Charania.   Harden, an eight-time All-Star, was acquired by the Rockets from the Oklahoma City Thunder in 2012.  While in Houston, he was voted the league's best player for the 2017-18 season and led the Rockets to the playoffs in all eight years. Visit CNN.com/sport for more news, videos and features \"Adding an All-NBA player such as James to our roster better positions our team to compete against the league's best,\" said Nets General Manager Sean Marks.  \"James is one of the most prolific scorers and playmakers in our game, and we are thrilled to bring his special talents to Brooklyn.\"  The trade comes in the same week that Harden criticized the Rockets.  \"We're just not good enough -- obviously, chemistry, talent-wise, just everything -- and it was clear these last few games,\" Harden said. \"I love this city. I've literally done everything that I can. I mean, this situation, it's crazy. It's something that I don't think can be fixed.\" READ: LeBron James hits no-look three pointer to win mid-game bet with teammate in LA Lakers rout The postgame comments were the last of a string a of negative behavior from the disgruntled star, after arriving late to the team's training camp, and then being sidelined for four days and fined $50,000 by the NBA for violating the league's health and safety protocols days before the start of the season. The former MVP now reunites with former Thunder teammate Kevin Durant and perennial All-Star guard Kyrie Irving in Brooklyn.  Further postponements Meanwhile, the NBA announced on Wednesday that it was postponing its ninth game of the season. Two games scheduled for Friday between the Phoenix Suns and the Golden State Warriros and the Washington Wizards and Detriot Pistons have been postponed as ongoing contact tracing means the Suns and the Wizards do not have the required eight players to contest the games.  Since January 6, 16 NBA players have tested positive for Covid-19.  The league announced on Tuesday that it had adopted stricter health and safety protocols to combat the spread of the virus. "
+    text = "They have traded the '’/NN'31-year-old to the Brooklyn Nets as part of a three-team deal, the Nets announced on Thursday. In return for Harden, Houston is acquiring Caris LeVert and Rodions Kurucs from the Nets, Dante Exum from the Cleveland Cavaliers, three first-round picks from the Nets, one first-round pick from the Cavaliers via the Milwaukee Bucks, and four first-round pick swaps from the Nets. In a separate deal, Houston is trading LeVert and a second-round pick to the Indiana Pacers for guard and two-time All-Star Victor Oladipo, according to The Athletic's Shams Charania.   Harden, an eight-time All-Star, was acquired by the Rockets from the Oklahoma City Thunder in 2012.  While in Houston, he was voted the league's best player for the 2017-18 season and led the Rockets to the playoffs in all eight years. Visit CNN.com/sport for more news, videos and features \"Adding an All-NBA player such as James to our roster better positions our team to compete against the league's best,\" said Nets General Manager Sean Marks.  \"James is one of the most prolific scorers and playmakers in our game, and we are thrilled to bring his special talents to Brooklyn.\"  The trade comes in the same week that Harden criticized the Rockets.  \"We're just not good enough -- obviously, chemistry, talent-wise, just everything -- and it was clear these last few games,\" Harden said. \"I love this city. I've literally done everything that I can. I mean, this situation, it's crazy. It's something that I don't think can be fixed.\" READ: LeBron James hits no-look three pointer to win mid-game bet with teammate in LA Lakers rout The postgame comments were the last of a string a of negative behavior from the disgruntled star, after arriving late to the team's training camp, and then being sidelined for four days and fined $50,000 by the NBA for violating the league's health and safety protocols days before the start of the season. The former MVP now reunites with former Thunder teammate Kevin Durant and perennial All-Star guard Kyrie Irving in Brooklyn.  Further postponements Meanwhile, the NBA announced on Wednesday that it was postponing its ninth game of the season. Two games scheduled for Friday between the Phoenix Suns and the Golden State Warriros and the Washington Wizards and Detriot Pistons have been postponed as ongoing contact tracing means the Suns and the Wizards do not have the required eight players to contest the games.  Since January 6, 16 NBA players have tested positive for Covid-19.  The league announced on Tuesday that it had adopted stricter health and safety protocols to combat the spread of the virus. "
+    #'’/NN'
+    my_text = "i am happy.'"
     model = opinosis()
-    model.summarize(text)
+    model.summarize(my_text)
 
