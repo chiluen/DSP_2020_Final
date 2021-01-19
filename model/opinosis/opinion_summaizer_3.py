@@ -266,8 +266,8 @@ class opinosis():
             for j, e2 in enumerate(li):
                 sim_matrix[i,j] = self.intersection_sim(e1, e2)
 
-        centers, _ = affinity_propagation(sim_matrix, random_state = None)
-
+        #centers, _ = affinity_propagation(sim_matrix, random_state = None)
+        centers, _ = affinity_propagation(sim_matrix)
         for i, e in enumerate(li):
             if i not in centers:
                 del cc[e]

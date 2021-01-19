@@ -40,6 +40,7 @@ class fast_abs():
             sent_list.append(words)
         summary = self.decode(self.model_dir, self.beam_size, self.diverse, self.max_len, self.cuda, sent_list)
         print(summary)
+        return summary
     def inference(self, text):
         sentences = nltk.sent_tokenize(text)
         sent_list = []
