@@ -2,6 +2,7 @@ import os, sys, json, argparse
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  #把tensorflow的warning取消掉
 import warnings; warnings.filterwarnings("ignore") #ignore depreciation
 from gtts import gTTS
+from playsound import playsound
 from tempfile import TemporaryFile
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', type=int, default=-1, help='Use extrative model number')
@@ -82,9 +83,6 @@ Y_or_N = input("Do you want to listen the summary? (y/n)\n")
 if(Y_or_N == "y" or Y_or_N == "Y" or Y_or_N == "yes" or Y_or_N == "Yes"):
     tts = gTTS(text=summary, lang='en')
     tts.save("synthesized.mp3")
-    from pygame import mixer
-    mixer.init()
-    mixer.music.load("synthesized.mp3")
-    mixer.music.play()
+    playsound("synthesized.mp3")
 else:
     pass

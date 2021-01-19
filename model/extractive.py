@@ -21,6 +21,7 @@ class bert_knn():
 
         summary = self.model(text, num_sentences=num_sentences)
         print(summary)
+        return summary
     
     def inference(self, text, num_sentences):
         summary = self.model(text, num_sentences=num_sentences)
