@@ -6,7 +6,7 @@
 
 
 ## Summarization demo
-    python3 run.py -e 1
+    sudo python3 run.py -e 1
 
 
 ## Pretrained data
